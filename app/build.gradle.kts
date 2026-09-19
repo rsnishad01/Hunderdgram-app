@@ -72,4 +72,5 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended:1.7.5")
     implementation("com.google.android.gms:play-services-auth:21.3.0")
     implementation("com.google.android.gms:play-services-location:21.3.0")
+    implementation("com.facebook.android:facebook-android-sdk:17.0.0")
 }

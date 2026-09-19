@@ -162,28 +162,30 @@ fun HundredGramApp(viewModel: MainViewModel) {
 
     var showUpdateDialog by remember { mutableStateOf(false) }
 
-    // Proactively request runtime permissions on Compose launch
+    // Proactively request runtime permissions on Compose launch (only once)
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { _ -> }
 
     LaunchedEffect(Unit) {
-        val permissions = mutableListOf(
-            Manifest.permission.CAMERA,
-            Manifest.permission.RECORD_AUDIO,
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION
-        )
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            permissions.add(Manifest.permission.POST_NOTIFICATIONS)
-            permissions.add(Manifest.permission.READ_MEDIA_IMAGES)
-            permissions.add(Manifest.permission.READ_MEDIA_VIDEO)
-        }
-        val ungranted = permissions.filter {
-            ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
-        }
-        if (ungranted.isNotEmpty()) {
-            permissionLauncher.launch(ungranted.toTypedArray())
+        val prefs = context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
+        val hasRequested = prefs.getBoolean("permissions_requested", false)
+        
+        if (!hasRequested) {
+            val permissions = mutableListOf(
+                Manifest.permission.CAMERA,
+                Manifest.permission.RECORD_AUDIO,
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            )
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+                permissions.add(Manifest.permission.READ_MEDIA_IMAGES)
+                permissions.add(Manifest.permission.READ_MEDIA_VIDEO)
+            }
+            
+            permissionLauncher.launch(permissions.toTypedArray())
+            prefs.edit().putBoolean("permissions_requested", true).apply()
         }
     }
 

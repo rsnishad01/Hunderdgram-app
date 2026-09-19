@@ -1,6 +1,7 @@
 package com.example.data.auth
 
 import android.content.Context
+import com.facebook.AccessToken
 import com.example.data.UserData
 import com.google.firebase.auth.FacebookAuthProvider
 import com.google.firebase.auth.FirebaseAuth
@@ -9,6 +10,16 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 
 class FacebookAuthManager(private val context: Context) {
+
+    // Check if a valid Facebook AccessToken exists for silent login
+    fun hasActiveFacebookSession(): Boolean {
+        return try {
+            val accessToken = com.facebook.AccessToken.getCurrentAccessToken()
+            accessToken != null && !accessToken.isExpired
+        } catch (e: Exception) {
+            false
+        }
+    }
 
     suspend fun signInWithFacebook(
         accessTokenString: String? = null,

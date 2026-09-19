@@ -149,8 +149,15 @@ class FirebaseStorageManager(private val context: Context) {
         val isOnline = isNetworkAvailable()
         val fbStorage = storage
 
-        if (!isOnline || fbStorage == null) {
-            trySend(UploadStatus.Progress(1.0f, "Media saved locally (${compression.summary})"))
+        if (fbStorage == null) {
+            trySend(UploadStatus.Progress(1.0f, "Firebase not configured. Saved locally."))
+            trySend(UploadStatus.Success(localUriString))
+            close()
+            return@callbackFlow
+        }
+
+        if (!isOnline) {
+            trySend(UploadStatus.Progress(1.0f, "Offline. Media saved locally."))
             trySend(UploadStatus.Success(localUriString))
             close()
             return@callbackFlow
@@ -158,17 +165,9 @@ class FirebaseStorageManager(private val context: Context) {
 
         // Firebase Storage Path: e.g. "posts/u_123/u_123_17123456_a1b2c3d4.jpg"
         val storagePath = "$folder/$cleanUserId/$fileName"
-        trySend(UploadStatus.Progress(0.50f, "Uploading: 50%"))
+        trySend(UploadStatus.Progress(0.50f, "Uploading to Cloud..."))
 
         try {
-            // Ensure Firebase Auth session if available
-            try {
-                val auth = FirebaseAuth.getInstance()
-                if (auth.currentUser == null) {
-                    auth.signInAnonymously()
-                }
-            } catch (_: Exception) {}
-
             val storageRef = fbStorage.reference.child(storagePath)
             val metadata = StorageMetadata.Builder()
                 .setContentType(compression.contentType)
@@ -186,31 +185,26 @@ class FirebaseStorageManager(private val context: Context) {
                 if (total > 0) {
                     val ratio = transferred.toFloat() / total.toFloat()
                     val progress = 0.50f + (ratio * 0.45f)
-                    trySend(UploadStatus.Progress(progress, "Uploading: ${(progress * 100).toInt()}%"))
+                    trySend(UploadStatus.Progress(progress, "Uploading to Cloud: ${(progress * 100).toInt()}%"))
                 }
             }.addOnSuccessListener { _ ->
                 storageRef.downloadUrl.addOnSuccessListener { downloadUri ->
-                    trySend(UploadStatus.Progress(1.0f, "Uploaded to Firebase successfully!"))
+                    trySend(UploadStatus.Progress(1.0f, "Uploaded to Cloud successfully!"))
                     trySend(UploadStatus.Success(downloadUri.toString()))
                     close()
                 }.addOnFailureListener {
-                    // Fallback to local storage if download URL resolution fails
-                    trySend(UploadStatus.Progress(1.0f, "Media saved successfully!"))
-                    trySend(UploadStatus.Success(localUriString))
+                    trySend(UploadStatus.Error("Failed to get Cloud URL: ${it.message}"))
                     close()
                 }
             }.addOnFailureListener { uploadException ->
-                // If Firebase Storage bucket fails (e.g. 404/not provisioned/auth), gracefully fallback to local file
-                trySend(UploadStatus.Progress(1.0f, "Saved locally (${compression.summary})"))
-                trySend(UploadStatus.Success(localUriString))
+                trySend(UploadStatus.Error("Cloud upload failed: ${uploadException.message}"))
                 close()
             }
         } catch (e: Exception) {
-            // Offline/Catch fallback
-            trySend(UploadStatus.Progress(1.0f, "Media saved locally (${compression.summary})"))
-            trySend(UploadStatus.Success(localUriString))
+            trySend(UploadStatus.Error("Cloud upload exception: ${e.message}"))
             close()
         }
+
 
         awaitClose { }
     }

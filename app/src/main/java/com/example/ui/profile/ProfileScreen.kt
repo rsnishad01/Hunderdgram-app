@@ -27,6 +27,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.GridOn
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Movie
@@ -160,12 +161,31 @@ fun ProfileScreen(viewModel: MainViewModel) {
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                UserAvatar(
-                    avatarUrl = currentUser.avatarUrl,
-                    size = 76.dp,
-                    hasActiveStory = true,
-                    isVerified = currentUser.isVerified
-                )
+                Box(
+                    modifier = Modifier.size(80.dp), // Slightly larger to accommodate button
+                    contentAlignment = Alignment.BottomEnd
+                ) {
+                    UserAvatar(
+                        avatarUrl = currentUser.avatarUrl,
+                        size = 76.dp,
+                        hasActiveStory = true,
+                        isVerified = currentUser.isVerified
+                    )
+                    IconButton(
+                        onClick = { /* TODO: Trigger photo picker */ },
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(HundredGramPink)
+                            .padding(2.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Update Profile Photo",
+                            tint = Color.White
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.width(24.dp))
                 Row(
                     modifier = Modifier.weight(1f),
